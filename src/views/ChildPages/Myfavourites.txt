@@ -1,0 +1,164 @@
+<template>
+  <div>
+    <Snackbar :SnackBarComponent="SnackBarComponent" />
+    <div class="flex-class2">
+      <div>
+        <h1 class="font50px yellowFontColor text-capitalize">Favourites</h1>
+      </div>
+      <!-- <div class="ms-auto">
+        <v-btn
+          rounded
+          outlined
+          class="text-capitalize white--text"
+          @click="$router.push('/')"
+          >back<v-icon color="white" size="17">mdi-arrow-left</v-icon></v-btn
+        >
+      </div> -->
+    </div>
+    <div class="d-flex justify-center contentDiv">
+      <div class="flex-class2">
+        <div
+          v-for="(data, idx) in myFavQrData"
+          v-show="myFavQrData.length > 0"
+          :key="idx"
+          class="ma-5 boxShadow cardBorderRadius10px"
+        >
+          <v-card flat class="cardBorderRadius10px boxShadow">
+            <v-hover v-slot="{ hover }">
+              <v-img
+                :width="200"
+                :height="200"
+                :src="`https://qrjungle-all-qrcodes.s3.ap-south-1.amazonaws.com/${data.qr_code_image_url_key}`"
+              >
+                <div v-if="hover" class="overlay">
+                  <div class="flex-class hoverBtns">
+                    <div>
+                      <v-btn icon @click="wishlistMethod(idx)">
+                        <v-icon
+                          size="20"
+                          :key="idx"
+                          :color="
+                            $store.getters.get_fav_qr_id.includes(
+                              data.qr_code_id
+                            ) === true
+                              ? '#fdcb0a'
+                              : 'white'
+                          "
+                          >mdi-heart</v-icon
+                        >
+                      </v-btn>
+                    </div>
+                  </div>
+                </div>
+              </v-img>
+            </v-hover>
+
+            <div class="text-center">
+              <p style="font-weight: 700">Category</p>
+              <p class="text-capitalize">{{ data.qr_code_category }}</p>
+            </div>
+          </v-card>
+        </div>
+        <div v-show="myFavQrData.length === 0" class="mt-15">
+          <span class="white--text">No favourite QR's available!!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { listMyFavourites } from "@/graphql/queries.js";
+
+import { updateFavouriteQr } from "@/mixins/UpdateFavourites.js";
+import { listFavouriteQr } from "@/mixins/GetAllMyFavouriteQr.js";
+import { API, graphqlOperation } from "aws-amplify";
+
+import Snackbar from "@/components/Extras/MySnackbar.vue";
+
+export default {
+  mixins: [updateFavouriteQr, listFavouriteQr],
+  components: { Snackbar },
+  data() {
+    return {
+      myFavQrData: [],
+      SnackBarComponent: {},
+    };
+  },
+
+  mounted() {
+    this.getMyFavQrMethod();
+    console.log("FROM_GETTERS", this.$store.getters.get_fav_qr_id);
+  },
+
+  methods: {
+    async getMyFavQrMethod() {
+      try {
+        const result = await API.graphql(graphqlOperation(listMyFavourites));
+        console.log(
+          "GET_MY_FAV_QR",
+          JSON.parse(result.data.listMyFavourites).data
+        );
+        this.myFavQrData = JSON.parse(result.data.listMyFavourites).data;
+      } catch (error) {
+        console.log("Error", error);
+      }
+    },
+
+    async wishlistMethod(idx) {
+      this.SnackBarComponent = {
+        SnackbarVModel: true,
+        color: "red--text",
+        Message: "Removed from the favorites",
+      };
+      const favQrIDs = this.$store.getters.get_fav_qr_id;
+      favQrIDs.splice(idx, 1);
+      await this.updateFavouriteQrMethod(favQrIDs);
+      await this.getMyFavQrMethod();
+      await this.listFavouriteQrMethod();
+    },
+
+    editPurchasedQrMethod(data) {
+      this.EditPurchasedQrDialog = true;
+      this.StoreObj = data;
+    },
+
+    EditPurchasedQrDialogEmit(Toggle) {
+      this.EditPurchasedQrDialog = false;
+      if (Toggle === 2) {
+        this.getMyQrMethod();
+      }
+    },
+  },
+};
+</script>
+
+<style scoped>
+.flex-class2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.hoverBtns {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.contentDiv {
+  max-height: 520px;
+  overflow-y: auto;
+}
+</style>

@@ -1,0 +1,228 @@
+<template>
+  <div>
+    <Snackbar :SnackBarComponent="SnackBarComponent" />
+    <PurchaseQr
+      :PurchaseQrDialog="PurchaseQrDialog"
+      :StoreObj="StoreObj"
+      @clicked="PurchaseQrDialogEmit"
+    />
+    <div class="flex-class2">
+      <div>
+        <h1 class="font50px yellowFontColor text-capitalize">
+          {{ categoryName }}
+        </h1>
+        <span class="font25px white--text">
+          Below QR codes are displayed under
+          <span class="yellowFontColor text-capitalize">{{
+            categoryName
+          }}</span>
+          categories..!
+        </span>
+      </div>
+      <div class="ms-auto">
+        <v-btn
+          rounded
+          outlined
+          class="text-capitalize white--text"
+          @click="routeToHomePageMethod()"
+          >back<v-icon color="white" size="17">mdi-arrow-left</v-icon></v-btn
+        >
+      </div>
+    </div>
+    <div class="d-flex justify-center contentDiv">
+      <div class="flex-class2">
+        <div
+          v-for="(imgURL, idx) in qrByCategoryNameData"
+          :key="idx"
+          class="ma-5 boxShadow cardBorderRadius10px"
+        >
+          <v-card flat class="cardBorderRadius10px boxShadow">
+            <v-hover v-slot="{ hover }">
+              <v-img
+                :width="180"
+                :height="180"
+                :src="`https://qrjungle-all-qrcodes.s3.ap-south-1.amazonaws.com/${imgURL.qr_code_image_url_key}`"
+                :lazy-src="`https://qrjungle-all-qrcodes.s3.ap-south-1.amazonaws.com/${imgURL.qr_code_image_url_key}`"
+              >
+                <div v-if="hover" class="overlay">
+                  <div class="flex-class hoverBtns">
+                    <div>
+                      <v-btn color="white" icon @click="wishlistMethod(idx)">
+                        <v-icon
+                          size="20"
+                          :color="
+                            $store.getters.get_fav_qr_id.includes(
+                              qrByCategoryNameData[idx].qr_code_id
+                            ) === true
+                              ? '#fdcb0a'
+                              : undefined
+                          "
+                          :key="idx"
+                          >mdi-heart</v-icon
+                        >
+                      </v-btn>
+                    </div>
+                    <div>
+                      <v-btn color="white" icon @click="purchaseQrMethod(idx)">
+                        <v-icon size="20">mdi-cart</v-icon>
+                      </v-btn>
+                    </div>
+                  </div>
+                </div>
+              </v-img>
+            </v-hover>
+          </v-card>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { GetQrByCategoryName } from "@/mixins/GetQrByCategoryName.js";
+import { GetPresignedAPICall } from "@/mixins/GetPresignedURL.js";
+
+import PurchaseQr from "@/components/QrPages/Dialogs/PurchaseQr.vue";
+import { updateFavouriteQr } from "@/mixins/UpdateFavourites.js";
+import { listFavouriteQr } from "@/mixins/GetAllMyFavouriteQr.js";
+import Snackbar from "@/components/Extras/MySnackbar.vue";
+
+export default {
+  mixins: [
+    GetQrByCategoryName,
+    GetPresignedAPICall,
+    updateFavouriteQr,
+    listFavouriteQr,
+  ],
+  components: { Snackbar, PurchaseQr },
+  props: {
+    categoryName: {
+      type: String,
+      required: true,
+    },
+  },
+  data() {
+    return {
+      qrImgURL: [],
+      favoriteQr: false,
+      SnackBarComponent: {},
+      PurchaseQrDialog: false,
+      StoreObj: {},
+    };
+  },
+
+  watch: {
+    categoryName(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.fetchQrData();
+      }
+    },
+  },
+
+  async mounted() {
+    this.fetchQrData();
+  },
+
+  methods: {
+    async fetchQrData() {
+      await this.GetQrByCategoryNameMethod(this.categoryName);
+      console.log("QR_BY_CATEGORY_NAME_DATA", this.qrByCategoryNameData);
+      // const qrImgURLPromises = this.qrByCategoryNameData.map(async (item) => {
+      //   return await this.GetPresignedAPICallMethod(item.qr_code_image_url_key);
+      // });
+      // this.qrImgURL = await Promise.all(qrImgURLPromises);
+    },
+
+    async wishlistMethod(idx) {
+      if (this.$store.getters.get_user_info.user_name === undefined) {
+        this.SnackBarComponent = {
+          SnackbarVModel: true,
+          color: "red--text",
+          Message: "Login before adding it to favorites!",
+          countdown: true,
+        };
+        setTimeout(() => {
+          this.$router.push("/loginPage");
+        }, 2000);
+      } else {
+        console.log(this.qrByCategoryNameData[idx].qr_code_id);
+        let updatedFavQrArray = this.$store.getters.get_fav_qr_id;
+        if (
+          updatedFavQrArray.includes(
+            this.qrByCategoryNameData[idx].qr_code_id
+          ) === true
+        ) {
+          console.log("YES PRESENT");
+          updatedFavQrArray.splice(
+            updatedFavQrArray.indexOf(
+              this.qrByCategoryNameData[idx].qr_code_id
+            ),
+            1
+          );
+          this.SnackBarComponent = {
+            SnackbarVModel: true,
+            color: "red--text",
+            Message: "Removed from the favorites",
+          };
+        } else {
+          console.log("NOT PRESENT");
+          updatedFavQrArray.push(this.qrByCategoryNameData[idx].qr_code_id);
+          this.SnackBarComponent = {
+            SnackbarVModel: true,
+            color: "green--text",
+            Message: "Added to the favorites",
+          };
+        }
+        console.log("NOW_CHECK", updatedFavQrArray);
+        await this.updateFavouriteQrMethod(updatedFavQrArray);
+        await this.listFavouriteQrMethod();
+      }
+    },
+
+    routeToHomePageMethod() {
+      // console.log(this.$route)
+      this.$router.push("/");
+    },
+
+    purchaseQrMethod(index) {
+      this.PurchaseQrDialog = true;
+      this.StoreObj = this.qrByCategoryNameData[index];
+    },
+
+    PurchaseQrDialogEmit(Toggle) {
+      this.PurchaseQrDialog = false;
+    },
+  },
+};
+</script>
+
+<style scoped>
+.flex-class2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.contentDiv {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.hoverBtns {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+</style>

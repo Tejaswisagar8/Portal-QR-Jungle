@@ -1,0 +1,15 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-qrjungleportal-dev-16c52-authRole",
+      "UnauthRoleArn": "arn:aws:iam::231427841372:role/amplify-qrjungleportal-dev-16c52-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::231427841372:role/amplify-qrjungleportal-dev-16c52-authRole",
+      "Region": "ap-south-1",
+      "DeploymentBucketName": "amplify-qrjungleportal-dev-16c52-deployment",
+      "UnauthRoleName": "amplify-qrjungleportal-dev-16c52-unauthRole",
+      "StackName": "amplify-qrjungleportal-dev-16c52",
+      "StackId": "arn:aws:cloudformation:ap-south-1:231427841372:stack/amplify-qrjungleportal-dev-16c52/b9e26370-2259-11ef-8f70-02a20ec2e4a5",
+      "AmplifyAppId": "d2vz998l8v74dv"
+    }
+  }
+}
