@@ -1,3 +1,4 @@
+<!--The changes are here -->
 <template>
   <div class="home-page">
     <NavbarSection />
